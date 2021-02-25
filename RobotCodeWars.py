@@ -2,13 +2,34 @@ from abc import ABC, abstractmethod
 import math
 import pygame
 import time
-
+import random
 
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
 
 
-class Robot(ABC):
+class GameObj(ABC):
+	def __init__(self, x, y):
+		self.x = x
+		"""
+		The x coordinate of the center of the object
+		"""
+
+		self.y = y
+		"""
+		The y coordinate of the center of the object
+		"""
+
+	@abstractmethod
+	def update(self):
+		pass
+
+	@abstractmethod
+	def draw(self):
+		pass
+
+
+class Robot(GameObj, ABC):
 	"""
 	The base class for all the robots
 	"""
@@ -28,10 +49,13 @@ class Robot(ABC):
 	Number of hp lost per second when the robot is within the attack radius of another robot
 	"""
 
-	def __init__(self):
+	def __init__(self, x, y):
+		super().__init__()
+
 		self.hp = 100
-		self.x = 0
-		self.y = 0
+		"""
+		The current health of the robot
+		"""
 
 	def update(self):
 		angle = self.calcDirection()
@@ -44,7 +68,7 @@ class Robot(ABC):
 		# decrease hp of robots within attack radius
 		for robot in robots:
 			if abs(self.x - robot.x) ** 2 + abs(self.y - robot.y) ** 2 < Robot.ATTACK_RADIUS_SQUARED:
-				robot.hp -= Robot.ATTACK_RATE * deltaTime
+				robot.hp -= 10
 
 	@abstractmethod
 	def calcDirection(self) -> float:
@@ -64,15 +88,31 @@ class Robot(ABC):
 		pass
 
 
+class TestRobot(Robot):
+	def calcDirection(self):
+		return random.uniform(0, 2 * math.pi)
+
+	def draw(self):
+		pygame.draw.circle(screen, (255, 0, 0), (self.x, self.y), 50)
+
+
 def update():
-	pass
+	for robot in robots:
+		robot.update()
 
 
 def draw():
-	pass
+	# Background draw
+	screen.blit(background, (0, 0))
+
+	# calling the draw function of each robot
+	for robot in robots:
+		robot.draw()
+
+	pygame.display.flip()
 
 
-robots = []
+robots: list[GameObj] = []
 """
 A list of all the robots on the screen.
 """
@@ -82,10 +122,26 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 The Pygame `Surface` that represents the screen
 """
 
-pygame.display.set_caption("ProgSoc Robot Code")
+deltaTime = 0
+"""
+The time it took to perform the last frame. Multiply by this value to get smooth movement.
+"""
+
+pygame.display.set_caption("ProgSoc Robot Code Wars")
+background = pygame.image.load("background.jpg")
+
 pygame.init()
 
+# test
+for i in range(5):
+	newRobot = TestRobot(
+		random.uniform(0, SCREEN_WIDTH),
+		random.uniform(0, SCREEN_HEIGHT)
+	)
+	robots.append(newRobot)
+
 running = True
+
 while running:
 	initialTime = time.time()
 
@@ -93,15 +149,10 @@ while running:
 	for event in pygame.event.get():
 		if event.type == pygame.QUIT:
 			running = False
+			print("Quitting Game")
 
 	update()
 	draw()
 
-	# show current frame on the screen
-	pygame.display.flip()
-
 	# calculate change in time
 	deltaTime = time.time() - initialTime
-	"""
-	The time it took to perform the last frame. Multiply by this value to get smooth movement.
-	"""
